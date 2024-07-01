@@ -1,12 +1,14 @@
 package lunatech;
 
 import java.net.URI;
-import java.util.Optional;
+import java.text.Normalizer;
+import java.util.HashSet;
+import java.util.Set;
 
-import io.quarkus.panache.common.Parameters;
 import jakarta.validation.ConstraintViolation;
 import org.bson.types.ObjectId;
 import org.jboss.logging.Logger;
+
 import jakarta.inject.Inject;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.*;
@@ -26,16 +28,19 @@ public class TodoResource {
 
     @GET
     public Response todos(
-            @QueryParam("tag") Optional<String> tag
-    ) {
+            @QueryParam("tag") Set<String> tags) {
 
-        if (tag.isPresent()) {
+        Set<String> formattedTags = new HashSet<String>();
+        
+        for (String tag : tags) {
+            formattedTags.add(stringWithoutCaseAndAccent(tag));
+        }
+
+        if (!formattedTags.isEmpty()) {
             return Response.ok(
-                    TodoEntity.list(
-                        "{ tags: { $elemMatch: { $eq: :tagParam } } }",
-                            Parameters.with("tagParam", tag.get())
-                    )
-            ).build();
+                TodoEntity.list("{ tags: { $all: [?1] } }", formattedTags)   
+            )
+            .build();
         }
 
         return Response.ok(TodoEntity.listAll()).build();
@@ -44,8 +49,7 @@ public class TodoResource {
     @GET
     @Path("/{id}")
     public Response todo(
-            @PathParam("id") String id
-    ) {
+            @PathParam("id") String id) {
         var todo = TodoEntity.findById(new ObjectId(id));
 
         if (todo == null) {
@@ -59,8 +63,7 @@ public class TodoResource {
     @DELETE
     @Path("/{id}")
     public Response deleteTodo(
-            @PathParam("id") String id
-    ) {
+            @PathParam("id") String id) {
         var todoe = TodoEntity.findById(new ObjectId(id));
         if (todoe == null) {
             logger.warn(String.format("Todo with id [%s] could not be deleted because it already exists", id));
@@ -73,8 +76,7 @@ public class TodoResource {
 
     @POST
     public Response addTodo(
-            TodoEntity todo
-    ) {
+            TodoEntity todo) {
         var existingTodo = TodoEntity.findById(todo.id);
 
         if (existingTodo != null) {
@@ -95,8 +97,7 @@ public class TodoResource {
 
     @PUT
     public Response updateTodo(
-            TodoEntity todo
-    ) {
+            TodoEntity todo) {
         var existingTodo = TodoEntity.findById(todo.id);
 
         if (existingTodo == null) {
@@ -113,5 +114,13 @@ public class TodoResource {
         todo.update();
         return Response.ok(todo).build();
     }
-}
 
+    public String stringWithoutCaseAndAccent(String tag) {
+        String formattedString = 
+                    Normalizer
+                        .normalize(tag, Normalizer.Form.NFD)
+                        .replaceAll("[^\\p{ASCII}]", "")
+                        .toLowerCase();
+        return formattedString;
+    }
+}
