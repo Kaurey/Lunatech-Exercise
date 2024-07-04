@@ -25,7 +25,8 @@ public class TodoEntity extends PanacheMongoEntity {
      */
     @NotNull(message = "Tags should be set")
     @NotEmpty(message = "At least one tag should be specified")
-    public Set<@Pattern(regexp = "[a-z]+", message = "Tags should be only in minuscule without accents") String> tags;
+    public Set<@Pattern(regexp = "[a-z]+", message = "Tags should be only in minuscule without accents") 
+               @NotNull String> tags;
 
     /**
      * True if the task is done, false otherwise
@@ -34,4 +35,10 @@ public class TodoEntity extends PanacheMongoEntity {
      */
     @NotNull
     public Boolean done;
+
+    public String idUser;
+
+    public void setIdUser(String idUser) {
+        this.idUser = idUser;
+    }
 }

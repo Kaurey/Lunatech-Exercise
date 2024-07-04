@@ -15,6 +15,10 @@ public class UserEntity extends PanacheMongoEntity{
     public String password;
 
     @NotNull(message = "Role should be set")
-    public Boolean role;
+    public String role;
+
+    public static UserEntity findByUsername(String username) {
+        return find("username", username).firstResult();
+    }
 }
 
