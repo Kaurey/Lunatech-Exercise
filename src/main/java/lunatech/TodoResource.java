@@ -1,7 +1,6 @@
 package lunatech;
 
 import java.net.URI;
-import java.text.Normalizer;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,7 +40,7 @@ public class TodoResource {
         Set<String> formattedTags = new HashSet<String>();
         
         for (String tag : tags) {
-            formattedTags.add(stringWithoutCaseAndAccent(tag));
+            formattedTags.add(FormattedTags.tagsWithoutCaseAndAccent(tag));
         }
 
         if (!formattedTags.isEmpty()) {
@@ -68,8 +67,8 @@ public class TodoResource {
         TodoEntity todoe = TodoEntity.findById(new ObjectId(id));
 
         if (todoe == null) {
-            logger.warn(String.format("Todo with id [%s] could not be deleted because it already exists", id));
-            return Response.status(Response.Status.BAD_REQUEST).entity("Todo already exists").build();
+            logger.warn(String.format("Todo with id [%s] could not be deleted because it does not exists", id));
+            return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
         }
 
         String username = securityContext.getUserPrincipal().getName();
@@ -118,7 +117,7 @@ public class TodoResource {
 
         if (existingTodo == null) {
             logger.warn(String.format("Todo with id [%s] could not be updated because it does not exists", todo.id));
-            return Response.status(Response.Status.BAD_REQUEST).entity("Todo does not exists").build();
+            return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
         }
 
         String username = securityContext.getUserPrincipal().getName();
@@ -136,14 +135,5 @@ public class TodoResource {
 
         todo.update();
         return Response.ok(todo).build();
-    }
-
-    public String stringWithoutCaseAndAccent(String tag) {
-        String formattedString = 
-                    Normalizer
-                        .normalize(tag, Normalizer.Form.NFD)
-                        .replaceAll("[^\\p{ASCII}]", "")
-                        .toLowerCase();
-        return formattedString;
     }
 }

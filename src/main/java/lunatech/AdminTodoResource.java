@@ -1,7 +1,7 @@
 package lunatech;
 
 import java.net.URI;
-import java.text.Normalizer;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,7 +32,7 @@ public class AdminTodoResource {
         Set<String> formattedTags = new HashSet<String>();
         
         for (String tag : tags) {
-            formattedTags.add(stringWithoutCaseAndAccent(tag));
+            formattedTags.add(FormattedTags.tagsWithoutCaseAndAccent(tag));
         }
 
         if (!formattedTags.isEmpty()) {
@@ -54,7 +54,7 @@ public class AdminTodoResource {
 
         if (todo == null) {
             logger.warn(String.format("Todo with id [%s] could not be retrieved because it does not exists", id));
-            return Response.status(Response.Status.NO_CONTENT).entity("Todo does not exists").build();
+            return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
         }
 
         return Response.ok(todo).build();
@@ -66,8 +66,8 @@ public class AdminTodoResource {
             @PathParam("id") String id) {
         var todoe = TodoEntity.findById(new ObjectId(id));
         if (todoe == null) {
-            logger.warn(String.format("Todo with id [%s] could not be deleted because it already exists", id));
-            return Response.status(Response.Status.BAD_REQUEST).entity("Todo already exists").build();
+            logger.warn(String.format("Todo with id [%s] could not be deleted because it does not exists", id));
+            return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
         }
 
         todoe.delete();
@@ -91,7 +91,7 @@ public class AdminTodoResource {
         }
 
         todo.persist();
-        var location = URI.create(String.format("/api/todos/%s", todo.id));
+        var location = URI.create(String.format("/api/admin/todos/%s", todo.id));
         return Response.created(location).entity(todo).build();
     }
 
@@ -102,7 +102,7 @@ public class AdminTodoResource {
 
         if (existingTodo == null) {
             logger.warn(String.format("Todo with id [%s] could not be updated because it does not exists", todo.id));
-            return Response.status(Response.Status.BAD_REQUEST).entity("Todo does not exists").build();
+            return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
         }
 
         var violations = validator.validate(todo);
@@ -113,14 +113,5 @@ public class AdminTodoResource {
 
         todo.update();
         return Response.ok(todo).build();
-    }
-
-    public String stringWithoutCaseAndAccent(String tag) {
-        String formattedString = 
-                    Normalizer
-                        .normalize(tag, Normalizer.Form.NFD)
-                        .replaceAll("[^\\p{ASCII}]", "")
-                        .toLowerCase();
-        return formattedString;
     }
 }
