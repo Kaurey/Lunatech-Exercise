@@ -75,7 +75,7 @@ public class TodoResource {
         String username = securityContext.getUserPrincipal().getName();
         UserEntity user = UserEntity.findByUsername(username);
 
-        if (user.id.toString().equals(todoe.idUser)) {
+        if (!user.id.toString().equals(todoe.idUser)) {
             return Response.status(Response.Status.BAD_REQUEST).entity("You can't delete a someone else's todo").build();
         }
 
