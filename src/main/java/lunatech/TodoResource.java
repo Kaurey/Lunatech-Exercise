@@ -113,7 +113,7 @@ public class TodoResource {
             TodoEntity todo,
             @Context SecurityContext securityContext) {
 
-        var existingTodo = TodoEntity.findById(todo.id);
+        TodoEntity existingTodo = TodoEntity.findById(todo.id);
 
         if (existingTodo == null) {
             logger.warn(String.format("Todo with id [%s] could not be updated because it does not exists", todo.id));
@@ -123,7 +123,7 @@ public class TodoResource {
         String username = securityContext.getUserPrincipal().getName();
         UserEntity user = UserEntity.findByUsername(username);
 
-        if (!user.id.toString().equals(todo.idUser)) {
+        if (!user.id.toString().equals(existingTodo.idUser)) {
             return Response.status(Response.Status.BAD_REQUEST).entity("You can't modify a someone else's todo").build();
         }
 
@@ -133,6 +133,7 @@ public class TodoResource {
             return Response.status(Response.Status.BAD_REQUEST).entity(messages).build();
         }
 
+        todo.setIdUser(user.id.toString());
         todo.update();
         return Response.ok(todo).build();
     }
