@@ -5,6 +5,7 @@ import io.quarkus.security.runtime.QuarkusPrincipal;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.IdentityProvider;
@@ -27,12 +28,21 @@ public class BasicAuthenticator implements IdentityProvider<UsernamePasswordAuth
         String password = new String(request.getPassword().getPassword());
 
         UserEntity user = UserEntity.findByUsername(username);
-        if (user != null && user.password.equals(password)) {
+
+        if (user != null && BcryptUtil.matches(password, user.password)) {
+            String role = "";
+
+            if (user.isAdmin) {
+                role = "admin";
+            } else {
+                role = "user";
+            }
+
             return Uni.createFrom().item(QuarkusSecurityIdentity.builder()
                 .setPrincipal(new QuarkusPrincipal(request.getUsername()))
                 .addCredential(request.getPassword())
                 .setAnonymous(false)
-                .addRole(user.role)
+                .addRole(role)
                 .build());
         }
 

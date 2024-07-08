@@ -49,8 +49,8 @@ public class AdminTodoResource {
     @GET
     @Path("/{id}")
     public Response todoAdmin(
-            @PathParam("id") String id) {
-        var todo = TodoEntity.findById(new ObjectId(id));
+            @PathParam("id") ObjectId id) {
+        var todo = TodoEntity.findById(id);
 
         if (todo == null) {
             logger.warn(String.format("Todo with id [%s] could not be retrieved because it does not exists", id));
@@ -63,14 +63,14 @@ public class AdminTodoResource {
     @DELETE
     @Path("/{id}")
     public Response deleteTodoAdmin(
-            @PathParam("id") String id) {
-        var todoe = TodoEntity.findById(new ObjectId(id));
-        if (todoe == null) {
+            @PathParam("id") ObjectId id) {
+        var todo = TodoEntity.findById(id);
+        if (todo == null) {
             logger.warn(String.format("Todo with id [%s] could not be deleted because it does not exists", id));
             return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
         }
 
-        todoe.delete();
+        todo.delete();
         return Response.status(Response.Status.NO_CONTENT).build();
     }
 
@@ -78,10 +78,16 @@ public class AdminTodoResource {
     public Response addTodoAdmin(
             TodoEntity todo) {
         var existingTodo = TodoEntity.findById(todo.id);
+        var existingUser = UserEntity.findById(todo.idUser);
 
         if (existingTodo != null) {
             logger.warn(String.format("Todo with id [%s] could not be created because it already exists", todo.id));
             return Response.status(Response.Status.BAD_REQUEST).entity("Todo already exists").build();
+        }
+
+        if (existingUser == null) {
+            logger.warn(String.format("User with id [%s] does not exists", todo.idUser));
+            return Response.status(Response.Status.NOT_FOUND).entity("User does not exists").build();
         }
 
         var violations = validator.validate(todo);
@@ -99,10 +105,16 @@ public class AdminTodoResource {
     public Response updateTodoAdmin(
             TodoEntity todo) {
         var existingTodo = TodoEntity.findById(todo.id);
+        var existingUser = UserEntity.findById(todo.idUser);
 
         if (existingTodo == null) {
             logger.warn(String.format("Todo with id [%s] could not be updated because it does not exists", todo.id));
             return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
+        }
+
+        if (existingUser == null) {
+            logger.warn(String.format("User with id [%s] does not exists", todo.idUser));
+            return Response.status(Response.Status.NOT_FOUND).entity("User does not exists").build();
         }
 
         var violations = validator.validate(todo);

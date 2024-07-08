@@ -1,8 +1,8 @@
 package lunatech;
 
 import java.net.URI;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import jakarta.validation.ConstraintViolation;
 import org.bson.types.ObjectId;
@@ -37,21 +37,19 @@ public class TodoResource {
         String username = securityContext.getUserPrincipal().getName();
         UserEntity user = UserEntity.findByUsername(username);
 
-        Set<String> formattedTags = new HashSet<String>();
-        
-        for (String tag : tags) {
-            formattedTags.add(FormattedTags.tagsWithoutCaseAndAccent(tag));
-        }
+        Set<String> formattedTags = tags.stream()
+                                        .map(tag -> FormattedTags.tagsWithoutCaseAndAccent(tag))
+                                        .collect(Collectors.toSet());
 
         if (!formattedTags.isEmpty()) {
             return Response.ok(
-                TodoEntity.list("{ $and: [ { tags: { $all: [?1] } }, { idUser: { $eq: ?2} } ] }", 
-                                        formattedTags, user.id.toString())   
+                TodoEntity.list("{ $and: [ { tags: { $all: [?1] } }, { idUser: { $eq: ?2 } } ] }", 
+                                        formattedTags, user.id)   
             )
             .build();
         } else {
             return Response.ok(
-                TodoEntity.list("{ idUser: { $eq: ?1 } }", user.id.toString())
+                TodoEntity.list("{ idUser: { $eq: ?1 } }", user.id)
             )
             .build();
         }
@@ -61,12 +59,12 @@ public class TodoResource {
     @DELETE
     @Path("/{id}")
     public Response deleteTodo(
-            @PathParam("id") String id,
+            @PathParam("id") ObjectId id,
             @Context SecurityContext securityContext) {
 
-        TodoEntity todoe = TodoEntity.findById(new ObjectId(id));
+        TodoEntity todo = TodoEntity.findById(id);
 
-        if (todoe == null) {
+        if (todo == null) {
             logger.warn(String.format("Todo with id [%s] could not be deleted because it does not exists", id));
             return Response.status(Response.Status.NOT_FOUND).entity("Todo does not exists").build();
         }
@@ -74,11 +72,11 @@ public class TodoResource {
         String username = securityContext.getUserPrincipal().getName();
         UserEntity user = UserEntity.findByUsername(username);
 
-        if (!user.id.toString().equals(todoe.idUser)) {
+        if (!user.id.equals(todo.idUser)) {
             return Response.status(Response.Status.BAD_REQUEST).entity("You can't delete a someone else's todo").build();
         }
 
-        todoe.delete();
+        todo.delete();
         return Response.status(Response.Status.NO_CONTENT).build();
     }
 
@@ -93,16 +91,17 @@ public class TodoResource {
             return Response.status(Response.Status.BAD_REQUEST).entity("Todo already exists").build();
         }
 
+        String username = securityContext.getUserPrincipal().getName();
+        UserEntity user = UserEntity.findByUsername(username);
+
+        todo.setIdUser(user.id);
+
         var violations = validator.validate(todo);
         if (!violations.isEmpty()) {
             var messages = violations.stream().map(ConstraintViolation::getMessage);
             return Response.status(Response.Status.BAD_REQUEST).entity(messages).build();
         }
 
-        String username = securityContext.getUserPrincipal().getName();
-        UserEntity user = UserEntity.findByUsername(username);
-
-        todo.setIdUser(user.id.toString());
         todo.persist();
         var location = URI.create(String.format("/api/todos/%s", todo.id));
         return Response.created(location).entity(todo).build();
@@ -123,9 +122,11 @@ public class TodoResource {
         String username = securityContext.getUserPrincipal().getName();
         UserEntity user = UserEntity.findByUsername(username);
 
-        if (!user.id.toString().equals(existingTodo.idUser)) {
+        if (!user.id.equals(existingTodo.idUser)) {
             return Response.status(Response.Status.BAD_REQUEST).entity("You can't modify a someone else's todo").build();
         }
+
+        todo.setIdUser(user.id);
 
         var violations = validator.validate(todo);
         if (!violations.isEmpty()) {
@@ -133,7 +134,6 @@ public class TodoResource {
             return Response.status(Response.Status.BAD_REQUEST).entity(messages).build();
         }
 
-        todo.setIdUser(user.id.toString());
         todo.update();
         return Response.ok(todo).build();
     }

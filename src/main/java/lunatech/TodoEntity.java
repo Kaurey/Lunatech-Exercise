@@ -2,6 +2,8 @@ package lunatech;
 
 import java.util.Set;
 
+import org.bson.types.ObjectId;
+
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import jakarta.validation.constraints.*;
@@ -36,9 +38,10 @@ public class TodoEntity extends PanacheMongoEntity {
     @NotNull
     public Boolean done;
 
-    public String idUser;
+    @NotNull
+    public ObjectId idUser;
 
-    public void setIdUser(String idUser) {
+    public void setIdUser(ObjectId idUser) {
         this.idUser = idUser;
     }
 }
